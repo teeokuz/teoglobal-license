@@ -242,6 +242,15 @@ app.post('/api/admin/extend', adminAuth, (req, res) => {
   res.json({ success: true, new_expires_at: newExpiry.toISOString(), days_added: days });
 });
 
+// POST /api/admin/cleanup — Remove licencas revogadas e expiradas
+app.post('/api/admin/cleanup', adminAuth, (req, res) => {
+  const before = db.licenses.length;
+  db.licenses = db.licenses.filter(l => l.status === 'active');
+  const removed = before - db.licenses.length;
+  saveDb();
+  res.json({ success: true, removed, remaining: db.licenses.length });
+});
+
 // ── Start ───────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`License server running on port ${PORT}`);

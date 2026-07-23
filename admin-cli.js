@@ -22,6 +22,7 @@ function api(method, path, body = null) {
       port: url.port,
       path: url.pathname + url.search,
       method,
+      timeout: 60000, // 60s (Render cold start pode demorar)
       headers: {
         'Content-Type': 'application/json',
         'x-admin-key': SECRET
@@ -37,9 +38,27 @@ function api(method, path, body = null) {
       });
     });
     req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
     if (body) req.write(JSON.stringify(body));
     req.end();
   });
+}
+
+// Retry wrapper para lidar com cold start do Render
+async function apiRetry(method, path, body = null, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      if (i > 0) {
+        const wait = i * 10; // 10s, 20s, 30s
+        process.stdout.write(`\r⏳ Aguardando servidor acordar... (${wait}s)`);
+        await new Promise(r => setTimeout(r, wait * 1000));
+        process.stdout.write('\r' + ' '.repeat(40) + '\r');
+      }
+      return await api(method, path, body);
+    } catch (err) {
+      if (i === retries - 1) throw err;
+    }
+  }
 }
 
 async function main() {
@@ -49,26 +68,44 @@ async function main() {
   try {
     switch (cmd) {
       case 'generate': {
-        const days = parseInt(args[1]) || 30;
+        let days;
+        if (args[1] && args[1].toLowerCase() === 'vitalicio') {
+          days = 36500; // 100 anos = vitalicia na pratica
+        } else {
+          days = parseInt(args[1]) || 30;
+          if (days > 36500) {
+            console.log('\n⚠️  Atencao: ' + days + ' dias = ' + Math.floor(days/365) + ' anos.');
+            console.log('   Para vitalicia use: node admin-cli.js generate vitalicio "Nome"\n');
+          }
+        }
         const name = args[2] || null;
-        const result = await api('POST', '/api/admin/generate-key', {
+        const result = await apiRetry('POST', '/api/admin/generate-key', {
           duration_days: days,
           customer_name: name
         });
         console.log('\n✅ Licença gerada com sucesso!\n');
         console.log(`   Chave:    ${result.license_key}`);
-        console.log(`   Dias:     ${result.duration_days}`);
-        console.log(`   Expira:   ${new Date(result.expires_at).toLocaleDateString('pt-BR')}`);
+        if (result.duration_days >= 36500) {
+          console.log(`   Tipo:     VITALICIA`);
+        } else {
+          console.log(`   Dias:     ${result.duration_days}`);
+          console.log(`   Expira:   ${new Date(result.expires_at).toLocaleDateString('pt-BR')}`);
+        }
         if (name) console.log(`   Cliente:  ${name}`);
         console.log('');
         break;
       }
 
       case 'list': {
-        const licenses = await api('GET', '/api/admin/licenses');
+        const licenses = await apiRetry('GET', '/api/admin/licenses');
+        if (!licenses || !Array.isArray(licenses)) {
+          console.log('\n❌ Servidor nao respondeu. Tente novamente em alguns segundos.\n');
+          break;
+        }
         console.log('\n📋 Licenças:\n');
         for (const l of licenses) {
-          const exp = new Date(l.expires_at).toLocaleDateString('pt-BR');
+          const isVitalicia = l.duration_days >= 36500;
+          const exp = isVitalicia ? 'VITALICIA' : new Date(l.expires_at).toLocaleDateString('pt-BR');
           const created = new Date(l.created_at).toLocaleDateString('pt-BR');
           const icon = l.status === 'active' ? '🟢' : l.status === 'revoked' ? '🔴' : '⚫';
           console.log(`   ${icon} ${l.license_key}  |  ${l.status.toUpperCase()}  |  Criada: ${created}  |  Expira: ${exp}  |  ${l.customer_name || '—'}`);
@@ -80,7 +117,7 @@ async function main() {
       case 'revoke': {
         const key = args[1];
         if (!key) { console.log('Uso: node admin-cli.js revoke <chave>'); process.exit(1); }
-        await api('POST', '/api/admin/revoke', { license_key: key });
+        await apiRetry('POST', '/api/admin/revoke', { license_key: key });
         console.log(`\n🔴 Licença ${key.toUpperCase()} revogada.\n`);
         break;
       }
@@ -89,9 +126,17 @@ async function main() {
         const key = args[1];
         const days = parseInt(args[2]);
         if (!key || !days) { console.log('Uso: node admin-cli.js extend <chave> <dias>'); process.exit(1); }
-        const result = await api('POST', '/api/admin/extend', { license_key: key, days });
+        const result = await apiRetry('POST', '/api/admin/extend', { license_key: key, days });
         console.log(`\n✅ Licença ${key.toUpperCase()} estendida em ${days} dias.`);
         console.log(`   Nova expiração: ${new Date(result.new_expires_at).toLocaleDateString('pt-BR')}\n`);
+        break;
+      }
+
+      case 'cleanup': {
+        console.log('\n🧹 Removendo licenças revogadas/expiradas...');
+        const result = await apiRetry('POST', '/api/admin/cleanup');
+        console.log(`   ${result.removed} licença(s) removida(s).`);
+        console.log(`   ${result.remaining} licença(s) ativa(s) restante(s).\n`);
         break;
       }
 
@@ -100,10 +145,12 @@ async function main() {
 🔑 TeoGlobal — Gerenciador de Licenças
 
   Comandos:
-    node admin-cli.js generate <dias> [nome]     → Gerar nova licença
-    node admin-cli.js list                        → Listar todas as licenças
-    node admin-cli.js revoke <chave>              → Revogar licença
-    node admin-cli.js extend <chave> <dias>       → Estender validade
+    node admin-cli.js generate <dias> [nome]     → Gerar licenca (ex: 30)
+    node admin-cli.js generate vitalicio [nome]  → Gerar licenca VITALICIA
+    node admin-cli.js list                       → Listar todas as licencas
+    node admin-cli.js revoke <chave>             → Revogar licenca
+    node admin-cli.js extend <chave> <dias>      → Estender validade
+    node admin-cli.js cleanup                    → Remover licencas revogadas/expiradas
 
   Ambiente:
     LICENSE_SERVER   URL do servidor (padrão: http://localhost:3000)

@@ -1,0 +1,86 @@
+======================================================================
+   COMANDOS RAPIDOS — Gerenciar Licencas TeoGlobal
+======================================================================
+
+SEMPRE EXECUTE NO POWERSHELL, NA PASTA license-server:
+
+  cd C:\Users\resta\OneDrive\Desktop\teoGlobal\license-server
+
+
+
+======================================================================
+CONFIGURAR CHAVE SECRETA (fazer uma vez por sessao)
+======================================================================
+  set LICENSE_SECRET=rI0KPMDj6yk3OXSzLmYxs74fqbTaicB8NH9AWRvJtlgFGwVQ
+
+
+
+======================================================================
+GERAR LICENCAS
+======================================================================
+
+  node admin-cli.js generate 30 "Joao"
+  node admin-cli.js generate 7 "Teste"
+  node admin-cli.js generate 365 "Anual"
+  node admin-cli.js generate vitalicio "VIP"
+
+
+
+======================================================================
+LISTAR LICENCAS
+======================================================================
+
+  node admin-cli.js list
+
+
+
+======================================================================
+REVOGAR LICENCA
+======================================================================
+
+  node admin-cli.js revoke TEO-XXXX-XXXX-XXXX-XXXX
+
+
+
+======================================================================
+ESTENDER LICENCA
+======================================================================
+
+  node admin-cli.js extend TEO-XXXX-XXXX-XXXX-XXXX 30
+
+
+
+======================================================================
+LIMPAR LICENCAS REVOGADAS/EXPIRADAS
+======================================================================
+
+  node admin-cli.js cleanup
+
+
+
+======================================================================
+VER NO NAVEGADOR (alternativa ao terminal)
+======================================================================
+
+  https://teoglobal-license.onrender.com/api/admin/licenses?admin_key=rI0KPMDj6yk3OXSzLmYxs74fqbTaicB8NH9AWRvJtlgFGwVQ
+
+
+
+======================================================================
+CHAVE SECRETA (LICENSE_SECRET)
+======================================================================
+
+  rI0KPMDj6yk3OXSzLmYxs74fqbTaicB8NH9AWRvJtlgFGwVQ
+
+  Onde encontrar caso perca:
+  - Render.com > teoglobal-license > Environment > LICENSE_SECRET
+  - Arquivo: license-server/admin-cli.js (linha 14)
+
+
+
+======================================================================
+SERVIDOR
+======================================================================
+
+  URL:     https://teoglobal-license.onrender.com
+  GitHub:  https://github.com/teeokuz/teoglobal-license
