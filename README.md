@@ -52,6 +52,14 @@ node admin-cli.js generate 30 "Nome do Cliente"
 # Gerar licença de 7 dias
 node admin-cli.js generate 7 "Cliente Teste"
 
+# Gerar licença vitalícia
+node admin-cli.js generate vitalicio "Cliente VIP"
+
+# Gerar licença por horas (teste de expiração)
+node admin-cli.js generate 2h "Teste 2h"
+node admin-cli.js generate 1h "Teste 1h"
+node admin-cli.js generate --hours 0.5 "Teste 30min"
+
 # Listar licenças
 node admin-cli.js list
 

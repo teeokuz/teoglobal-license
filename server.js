@@ -49,6 +49,22 @@ function getDaysRemaining(expiresAt) {
   return Math.max(0, Math.ceil((expires - now) / (1000 * 60 * 60 * 24)));
 }
 
+function getHoursRemaining(expiresAt) {
+  const now = new Date();
+  const expires = new Date(expiresAt);
+  const totalHours = Math.max(0, (expires - now) / (1000 * 60 * 60));
+  return Math.round(totalHours * 10) / 10; // 1 casa decimal
+}
+
+function getRemainingInfo(expiresAt) {
+  const days = getDaysRemaining(expiresAt);
+  const hours = getHoursRemaining(expiresAt);
+  return {
+    days_remaining: days,
+    hours_remaining: hours < 24 ? hours : null // só envia horas se < 24h
+  };
+}
+
 function findLicense(key) {
   return db.licenses.find(l => l.license_key === key.toUpperCase().trim());
 }
@@ -101,7 +117,7 @@ app.post('/api/license/activate', (req, res) => {
     return res.json({
       success: true,
       message: 'Licença já ativada — validada com sucesso',
-      days_remaining: getDaysRemaining(license.expires_at),
+      ...getRemainingInfo(license.expires_at),
       expires_at: license.expires_at
     });
   }
@@ -115,7 +131,7 @@ app.post('/api/license/activate', (req, res) => {
   res.json({
     success: true,
     message: 'Licença ativada com sucesso!',
-    days_remaining: getDaysRemaining(license.expires_at),
+    ...getRemainingInfo(license.expires_at),
     expires_at: license.expires_at
   });
 });
@@ -160,7 +176,7 @@ app.post('/api/license/validate', (req, res) => {
 
   res.json({
     success: true,
-    days_remaining: getDaysRemaining(license.expires_at),
+    ...getRemainingInfo(license.expires_at),
     expires_at: license.expires_at,
     customer_name: license.customer_name
   });
@@ -177,15 +193,28 @@ function adminAuth(req, res, next) {
 
 // POST /api/admin/generate-key
 app.post('/api/admin/generate-key', adminAuth, (req, res) => {
-  const { duration_days = 30, customer_name, notes } = req.body;
+  const { duration_days, duration_hours, customer_name, notes } = req.body;
+
+  // Calcula expiração: prioriza horas se fornecidas, senão usa dias (default 30)
+  let expiresAt;
+  let durationLabel;
+  if (duration_hours && duration_hours > 0) {
+    expiresAt = new Date(Date.now() + duration_hours * 60 * 60 * 1000).toISOString();
+    durationLabel = `${duration_hours}h`;
+  } else {
+    const days = duration_days || 30;
+    expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    durationLabel = `${days} dias`;
+  }
+
   const licenseKey = generateLicenseKey();
-  const expiresAt = new Date(Date.now() + duration_days * 24 * 60 * 60 * 1000).toISOString();
 
   const license = {
     id: db.licenses.length + 1,
     license_key: licenseKey,
     status: 'active',
-    duration_days,
+    duration_days: duration_days || null,
+    duration_hours: duration_hours || null,
     hwid: null,
     hwid_bound_at: null,
     created_at: new Date().toISOString(),
@@ -202,7 +231,7 @@ app.post('/api/admin/generate-key', adminAuth, (req, res) => {
     success: true,
     license_key: licenseKey,
     expires_at: expiresAt,
-    duration_days
+    duration: durationLabel
   });
 });
 

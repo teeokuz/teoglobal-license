@@ -68,30 +68,74 @@ async function main() {
   try {
     switch (cmd) {
       case 'generate': {
+        let hours = null;
         let days;
-        if (args[1] && args[1].toLowerCase() === 'vitalicio') {
-          days = 36500; // 100 anos = vitalicia na pratica
+        let nameIdx = 2;
+
+        // Detecta modo horas: --hours N ou Nh (ex: 2h)
+        if (args[1] === '--hours' || args[1] === '-h') {
+          hours = parseFloat(args[2]);
+          nameIdx = 3;
+        } else if (args[1] && args[1].toLowerCase().endsWith('h')) {
+          hours = parseFloat(args[1]);
+          nameIdx = 2;
+        } else if (args[1] && args[1].toLowerCase() === 'vitalicio') {
+          days = 36500; // 100 anos = vitalícia na prática
+          nameIdx = 2;
         } else {
           days = parseInt(args[1]) || 30;
           if (days > 36500) {
-            console.log('\n⚠️  Atencao: ' + days + ' dias = ' + Math.floor(days/365) + ' anos.');
-            console.log('   Para vitalicia use: node admin-cli.js generate vitalicio "Nome"\n');
+            console.log('\n⚠️  Atenção: ' + days + ' dias = ' + Math.floor(days/365) + ' anos.');
+            console.log('   Para vitalícia use: node admin-cli.js generate vitalicio "Nome"\n');
           }
         }
-        const name = args[2] || null;
-        const result = await apiRetry('POST', '/api/admin/generate-key', {
-          duration_days: days,
-          customer_name: name
-        });
+
+        if (hours !== null && (isNaN(hours) || hours <= 0 || hours > 8784)) {
+          console.log('\n❌ Horas inválidas. Use um valor entre 0.1 e 8784 (1 ano).\n');
+          process.exit(1);
+        }
+
+        const name = args[nameIdx] || null;
+        const body = hours !== null
+          ? { duration_hours: hours, customer_name: name }
+          : { duration_days: days, customer_name: name };
+
+        const result = await apiRetry('POST', '/api/admin/generate-key', body);
+
+        // ⚠️ VALIDAÇÃO: Detecta se o servidor aceitou as horas corretamente
+        const serverSupportsHours = result.duration && result.duration.includes('h');
+        const requestedHours = hours !== null;
+        const serverIsOutdated = requestedHours && !serverSupportsHours;
+
         console.log('\n✅ Licença gerada com sucesso!\n');
         console.log(`   Chave:    ${result.license_key}`);
-        if (result.duration_days >= 36500) {
-          console.log(`   Tipo:     VITALICIA`);
+
+        // Sempre mostra o que o SERVIDOR retornou (não o que foi pedido localmente)
+        if (result.duration) {
+          console.log(`   Duração:  ${result.duration}`);
+        } else if (requestedHours) {
+          console.log(`   Duração:  ${hours}h (solicitado)`);
         } else {
-          console.log(`   Dias:     ${result.duration_days}`);
+          console.log(`   Duração:  ${days || 30} dias`);
+        }
+
+        if (requestedHours) {
+          console.log(`   Expira:   ${new Date(result.expires_at).toLocaleString('pt-BR')}`);
+        } else if (days >= 36500) {
+          console.log(`   Tipo:     VITALÍCIA`);
+        } else {
           console.log(`   Expira:   ${new Date(result.expires_at).toLocaleDateString('pt-BR')}`);
         }
+
         if (name) console.log(`   Cliente:  ${name}`);
+
+        if (serverIsOutdated) {
+          console.log('');
+          console.log('   ⚠️  ATENÇÃO: O servidor NÃO aceitou a duração em horas!');
+          console.log('   ⚠️  Ele gerou uma licença de 30 dias (padrão antigo).');
+          console.log('   ⚠️  Faça deploy do novo server.js no Render.');
+        }
+
         console.log('');
         break;
       }
@@ -105,7 +149,15 @@ async function main() {
         console.log('\n📋 Licenças:\n');
         for (const l of licenses) {
           const isVitalicia = l.duration_days >= 36500;
-          const exp = isVitalicia ? 'VITALICIA' : new Date(l.expires_at).toLocaleDateString('pt-BR');
+          const isHours = l.duration_hours != null && l.duration_hours > 0;
+          let exp;
+          if (isVitalicia) {
+            exp = 'VITALÍCIA';
+          } else if (isHours) {
+            exp = `${l.duration_hours}h — ${new Date(l.expires_at).toLocaleString('pt-BR')}`;
+          } else {
+            exp = new Date(l.expires_at).toLocaleDateString('pt-BR');
+          }
           const created = new Date(l.created_at).toLocaleDateString('pt-BR');
           const icon = l.status === 'active' ? '🟢' : l.status === 'revoked' ? '🔴' : '⚫';
           console.log(`   ${icon} ${l.license_key}  |  ${l.status.toUpperCase()}  |  Criada: ${created}  |  Expira: ${exp}  |  ${l.customer_name || '—'}`);
@@ -142,20 +194,22 @@ async function main() {
 
       default:
         console.log(`
-🔑 TeoGlobal — Gerenciador de Licenças
+ 🔑 TeoGlobal — Gerenciador de Licenças
 
-  Comandos:
-    node admin-cli.js generate <dias> [nome]     → Gerar licenca (ex: 30)
-    node admin-cli.js generate vitalicio [nome]  → Gerar licenca VITALICIA
-    node admin-cli.js list                       → Listar todas as licencas
-    node admin-cli.js revoke <chave>             → Revogar licenca
-    node admin-cli.js extend <chave> <dias>      → Estender validade
-    node admin-cli.js cleanup                    → Remover licencas revogadas/expiradas
+   Comandos:
+     node admin-cli.js generate <dias> [nome]      → Gerar licença (ex: 30)
+     node admin-cli.js generate 2h "Teste"          → Licença de 2 horas (teste)
+     node admin-cli.js generate --hours 0.5 [nome]  → Licença de 30 minutos
+     node admin-cli.js generate vitalicio [nome]    → Gerar licença VITALÍCIA
+     node admin-cli.js list                         → Listar todas as licenças
+     node admin-cli.js revoke <chave>               → Revogar licença
+     node admin-cli.js extend <chave> <dias>        → Estender validade
+     node admin-cli.js cleanup                      → Remover licenças revogadas/expiradas
 
-  Ambiente:
-    LICENSE_SERVER   URL do servidor (padrão: http://localhost:3000)
-    LICENSE_SECRET   Chave de admin (padrão: teoglobal-secret-key-change-me)
-`);
+   Ambiente:
+     LICENSE_SERVER   URL do servidor (padrão: http://localhost:3000)
+     LICENSE_SECRET   Chave de admin (padrão: teoglobal-secret-key-change-me)
+ `);
     }
   } catch (err) {
     console.error(`\n❌ Erro: ${err.message}`);
