@@ -10,8 +10,8 @@
 const https = require('https');
 const http = require('http');
 
-const SERVER_URL = process.env.LICENSE_SERVER || 'http://localhost:3000';
-const SECRET = process.env.LICENSE_SECRET || 'teoglobal-secret-key-change-me';
+const SERVER_URL = process.env.LICENSE_SERVER || 'https://teoglobal-license.onrender.com';
+const SECRET = process.env.LICENSE_SECRET || 'rI0KPMDj6yk3OXSzLmYxs74fqbTaicB8NH9AWRvJtlgFGwVQ';
 
 function api(method, path, body = null) {
   return new Promise((resolve, reject) => {
