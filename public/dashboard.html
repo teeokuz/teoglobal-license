@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeoGlobal — Painel de Licenças</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-dark text-light">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg sticky-top">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand" href="#">TeoGlobal</a>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-muted small d-none d-md-inline">Painel de Licenças</span>
+        <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+          <i class="bi bi-box-arrow-right"></i> Sair
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-4">
+
+    <!-- Abas -->
+    <ul class="nav nav-tabs border-secondary mb-4" id="mainTabs">
+      <li class="nav-item">
+        <a class="nav-link active" data-tab="dashboard" href="#">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-tab="licenses" href="#">
+          <i class="bi bi-key"></i> Licenças
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-tab="generate" href="#">
+          <i class="bi bi-plus-circle"></i> Nova Licença
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-tab="audit" href="#">
+          <i class="bi bi-journal-text"></i> Auditoria
+        </a>
+      </li>
+    </ul>
+
+    <!-- Aba: Dashboard -->
+    <div id="tab-dashboard" class="tab-content">
+      <div class="row g-3 mb-4" id="statsRow">
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="card stat-card p-3 text-center">
+            <div class="stat-number text-brand" id="statTotal">-</div>
+            <div class="stat-label">Total</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="card stat-card p-3 text-center">
+            <div class="stat-number text-success" id="statActive">-</div>
+            <div class="stat-label">Ativas</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="card stat-card p-3 text-center">
+            <div class="stat-number text-warning" id="statExpiring">-</div>
+            <div class="stat-label">Expirando (7d)</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="card stat-card p-3 text-center">
+            <div class="stat-number text-info" id="statInUse">-</div>
+            <div class="stat-label">Em uso</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="card stat-card p-3 text-center">
+            <div class="stat-number text-danger" id="statRevoked">-</div>
+            <div class="stat-label">Revogadas</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="card stat-card p-3 text-center">
+            <div class="stat-number text-muted" id="statExpired">-</div>
+            <div class="stat-label">Expiradas</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Expirando em breve</h6>
+          <a href="#" class="text-brand small" data-tab="licenses" onclick="switchTab('licenses')">Ver todas</a>
+        </div>
+        <div class="card-body p-0" id="expiringTable"></div>
+      </div>
+    </div>
+
+    <!-- Aba: Licenças -->
+    <div id="tab-licenses" class="tab-content d-none">
+      <div class="card">
+        <div class="card-header">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+              <input type="text" id="searchInput" class="form-control bg-input border-secondary text-light"
+                     placeholder="Buscar por chave ou cliente...">
+            </div>
+            <div class="col-md-2">
+              <select id="statusFilter" class="form-select bg-input border-secondary text-light">
+                <option value="">Todos os status</option>
+                <option value="active">Ativas</option>
+                <option value="revoked">Revogadas</option>
+                <option value="expired">Expiradas</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-outline-brand btn-sm" onclick="loadLicenses()">
+                <i class="bi bi-arrow-clockwise"></i> Atualizar
+              </button>
+            </div>
+            <div class="col-md-4 text-end">
+              <button class="btn btn-outline-light btn-sm" onclick="downloadBackup()">
+                <i class="bi bi-download"></i> Backup
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="cleanupLicenses()">
+                <i class="bi bi-trash"></i> Limpar
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0" style="overflow-x: auto;">
+          <table class="table table-hover mb-0" id="licensesTable">
+            <thead>
+              <tr>
+                <th>Chave</th>
+                <th>Cliente</th>
+                <th>Status</th>
+                <th>Criada</th>
+                <th>Expira</th>
+                <th>HWID</th>
+                <th>Último heartbeat</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Nova Licença -->
+    <div id="tab-generate" class="tab-content d-none">
+      <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">Gerar nova licença</h6>
+            </div>
+            <div class="card-body">
+              <form id="generateForm">
+                <div class="mb-3">
+                  <label class="form-label">Nome do cliente</label>
+                  <input type="text" id="genCustomer" class="form-control bg-input border-secondary text-light"
+                         placeholder="Ex: João Silva">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Tipo de duração</label>
+                  <select id="genType" class="form-select bg-input border-secondary text-light" onchange="toggleGenType()">
+                    <option value="days">Dias</option>
+                    <option value="hours">Horas</option>
+                    <option value="vitalicio">Vitalícia</option>
+                  </select>
+                </div>
+                <div class="mb-3" id="genDaysGroup">
+                  <label class="form-label">Duração (dias)</label>
+                  <input type="number" id="genDays" class="form-control bg-input border-secondary text-light"
+                         value="30" min="1" max="36500">
+                </div>
+                <div class="mb-3 d-none" id="genHoursGroup">
+                  <label class="form-label">Duração (horas)</label>
+                  <input type="number" id="genHours" class="form-control bg-input border-secondary text-light"
+                         value="2" min="0.1" max="8784" step="0.1">
+                  <div class="form-text text-muted">Use 0.016 para 1 minuto, 0.5 para 30 min, 2 para 2h</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Observações (opcional)</label>
+                  <textarea id="genNotes" class="form-control bg-input border-secondary text-light" rows="2"
+                            placeholder="Ex: Pagamento via Pix, WhatsApp (11) 9..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-brand w-100" id="genBtn">
+                  <i class="bi bi-key"></i> Gerar Licença
+                </button>
+              </form>
+
+              <!-- Resultado -->
+              <div id="genResult" class="mt-4 d-none">
+                <div class="alert alert-success">
+                  <strong>Licença gerada!</strong>
+                </div>
+                <div class="key-display mb-2" id="genKey"></div>
+                <div class="text-muted small mb-3" id="genDetails"></div>
+                <button class="btn btn-outline-brand btn-sm w-100" onclick="copyKey()">
+                  <i class="bi bi-clipboard"></i> Copiar chave
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Auditoria -->
+    <div id="tab-audit" class="tab-content d-none">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Log de auditoria</h6>
+          <button class="btn btn-outline-brand btn-sm" onclick="loadAudit()">
+            <i class="bi bi-arrow-clockwise"></i> Atualizar
+          </button>
+        </div>
+        <div class="card-body p-0" style="overflow-x: auto;">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Data/Hora</th>
+                <th>Ação</th>
+                <th>Licença</th>
+                <th>Detalhes</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody id="auditBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

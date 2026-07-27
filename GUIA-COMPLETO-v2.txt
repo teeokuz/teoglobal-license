@@ -1,0 +1,459 @@
+======================================================================
+   GUIA COMPLETO v2 — TeoGlobal (Mister Teo Project)
+   Sistema de Licenciamento + Dashboard + Build + Deploy
+======================================================================
+
+Este guia contem TODAS as etapas para recriar o projeto do zero,
+incluindo o NOVO dashboard web de gerenciamento de licencas.
+
+ATUALIZADO: Julho/2026 — v2 com SQLite + Dashboard
+
+
+======================================================================
+PARTE 1 — PRE-REQUISITOS (instalar apenas 1 vez)
+======================================================================
+
+1. JDK 17 da Microsoft:
+   https://learn.microsoft.com/pt-br/java/openjdk/download
+   Baixar: "Microsoft Build of OpenJDK 17" (Windows x64)
+
+2. IntelliJ IDEA Community Edition:
+   https://www.jetbrains.com/idea/download/
+
+3. Node.js (PowerShell como admin):
+   winget install OpenJS.NodeJS.LTS
+
+4. Git:
+   winget install Git.Git
+
+
+======================================================================
+PARTE 2 — LOCAL DO PROJETO (evitar OneDrive)
+======================================================================
+
+IMPORTANTE: NAO coloque o projeto no OneDrive. Ele corrompe arquivos.
+
+Recomendado: mover para:
+  C:\Users\SEU-USUARIO\Projetos\teoGlobal\
+
+Se ja estiver no OneDrive e quiser manter, clique com botao direito
+na pasta > "Always keep on this device".
+
+
+======================================================================
+PARTE 3 — ABRIR E COMPILAR NO INTELLIJ
+======================================================================
+
+1. IntelliJ > File > Open > selecionar pasta teoGlobal
+2. Aguardar indexar
+3. Compilar:
+   - Painel direito > aba "Gradle" > Tasks > other > fatJar (duplo clique)
+   OU terminal:
+     set JAVA_HOME=C:\Users\SEU-USUARIO\.jdks\ms-17.0.19
+     .\gradlew.bat fatJar
+
+   JAR gerado em: build/libs/teoGlobal-fat.jar
+
+
+======================================================================
+PARTE 4 — SERVIDOR DE LICENCAS (v2 — SQLite + Dashboard)
+======================================================================
+
+A pasta license-server/ agora contem:
+
+  ARQUIVOS PRINCIPAIS:
+    server.js          → Servidor Express (API + dashboard)
+    db.js              → Banco SQLite (substituiu o JSON antigo)
+    auth.js            → Login do dashboard
+    admin-cli.js        → Linha de comando (ainda funciona)
+    package.json        → Dependencias
+
+  DASHBOARD (pasta public/):
+    login.html          → Tela de login
+    dashboard.html      → Painel principal
+    css/style.css       → Estilos (tema escuro)
+    js/dashboard.js     → Logica do painel
+
+  UTILITARIOS:
+    iniciar-dashboard.bat → 2 cliques para iniciar tudo
+    licenses.json.bak     → Backup do JSON antigo (migrado)
+
+
+4.1 — INSTALAR DEPENDENCIAS
+
+  cd license-server
+  npm install
+
+
+4.2 — INICIAR O SERVIDOR (desenvolvimento local)
+
+  OPCAO A — Arquivo .bat (recomendado):
+    Duplo clique em: iniciar-dashboard.bat
+
+  OPCAO B — PowerShell manual:
+    cd license-server
+    $env:LICENSE_SECRET = "sua-chave"
+    $env:DASHBOARD_PASSWORD = "sua-senha"
+    $env:PORT = "3001"
+    node server.js
+
+
+4.3 — ACESSAR O DASHBOARD
+
+  Abrir no navegador: http://localhost:3001/admin
+  Senha: a que voce definiu em DASHBOARD_PASSWORD
+
+  O dashboard tem 4 abas:
+    Dashboard   → Cards com estatisticas + licencas expirando
+    Licencas    → Tabela completa com busca, filtro e acoes
+    Nova Licenca → Formulario para gerar em 2 cliques
+    Auditoria    → Historico de todas as acoes
+
+
+======================================================================
+PARTE 5 — USANDO O DASHBOARD (guia visual)
+======================================================================
+
+5.1 — GERAR LICENCA
+
+  1. Aba "Nova Licenca"
+  2. Preencher nome do cliente (opcional)
+  3. Escolher: Dias / Horas / Vitalicia
+  4. Clicar "Gerar Licenca"
+  5. Clicar "Copiar chave"
+  6. Enviar chave para o cliente
+
+  Formatos aceitos:
+    Dias:      30 (30 dias)
+    Horas:     2 (2 horas), 0.5 (30 min), 0.016 (1 min)
+    Vitalicia:  nao expira nunca
+
+
+5.2 — LISTAR / BUSCAR LICENCAS
+
+  1. Aba "Licencas"
+  2. Digitar na busca (nome do cliente ou pedaco da chave)
+  3. Filtrar por status: Ativas / Revogadas / Expiradas
+  4. Clicar na chave para copiar
+
+
+5.3 — ACOES EM UMA LICENCA (botoes na linha da tabela)
+
+  📅 Estender  → Adiciona mais dias
+  💻 Reset HWID → Libera para ativar em outro PC
+  ❌ Revogar   → Bloqueia acesso imediatamente
+
+
+5.4 — BACKUP
+
+  Aba "Licencas" > botao "Backup" → baixa arquivo JSON
+
+
+5.5 — LIMPAR LICENCAS ANTIGAS
+
+  Aba "Licencas" > botao "Limpar" → remove revogadas e expiradas
+
+
+======================================================================
+PARTE 6 — COMANDOS DO TERMINAL (admin-cli.js)
+======================================================================
+
+O terminal ainda funciona. Execute no PowerShell, na pasta license-server.
+
+CONFIGURAR (uma vez por sessao):
+  $env:LICENSE_SECRET = "sua-chave"
+
+COMANDOS:
+  node admin-cli.js generate 30 "Joao"         Gerar 30 dias
+  node admin-cli.js generate 2h "Teste"         Gerar 2 horas
+  node admin-cli.js generate vitalicio "VIP"    Gerar vitalicia
+  node admin-cli.js list                        Listar todas
+  node admin-cli.js revoke TEO-XXXX-...         Revogar
+  node admin-cli.js extend TEO-XXXX-... 30      Estender +30 dias
+  node admin-cli.js extend TEO-XXXX-... 12h     Estender +12 horas
+  node admin-cli.js reset-hwid TEO-XXXX-...     Liberar para novo PC
+  node admin-cli.js stats                       Estatisticas
+  node admin-cli.js backup                      Baixar backup
+
+
+======================================================================
+PARTE 7 — DEPLOY NO RENDER.COM
+======================================================================
+
+ATENCAO: O Render free tier NAO tem disco persistente. O banco SQLite
+some quando o servidor dorme. Recomendo upgrade (ver secao 7.2).
+
+7.1 — DEPLOY BASICO (free tier, sem persistencia)
+
+  1. Criar conta em https://render.com (login com GitHub)
+  2. Criar repositorio no GitHub:
+     - https://github.com/new
+     - Nome: teoglobal-license
+     - NAO marcar "Add README"
+
+  3. Enviar codigo (PowerShell na pasta license-server):
+     git init
+     git add .
+     git config user.email "seu@email.com"
+     git config user.name "Seu Nome"
+     git commit -m "v2 — SQLite + Dashboard"
+     git branch -m main
+     git remote add origin https://github.com/SEU-USUARIO/teoglobal-license.git
+     git push -u origin main
+
+  4. No Render.com:
+     New + > Web Service > conectar GitHub > selecionar teoglobal-license
+     Configurar:
+       Name:      teoglobal-license
+       Runtime:   Node
+       Build:     npm install
+       Start:     node server.js
+
+     Environment Variables (OBRIGATORIAS):
+       LICENSE_SECRET      = (sua chave secreta)
+       DASHBOARD_PASSWORD  = (senha do painel)
+       SESSION_SECRET      = (string aleatoria longa)
+
+  5. Clicar "Create Web Service" > aguardar deploy (~2 min)
+  6. Anotar URL (ex: https://teoglobal-license.onrender.com)
+  7. Dashboard em: https://teoglobal-license.onrender.com/admin
+
+
+7.2 — COM PERSISTENCIA (recomendado — $7/mes)
+
+  No Render, va ate seu Web Service > Settings > Disks:
+    Add Disk > Name: db > Mount Path: /opt/render/project/src > Size: 1 GB
+
+  Depois disso o SQLite sobrevive a reinicios e cold starts.
+
+
+7.3 — ALTERNATIVA GRATUITA COM PERSISTENCIA (Fly.io)
+
+  Fly.io oferece 3GB de volume persistente no free tier.
+  https://fly.io — requer cartao de credito (nao cobra no free).
+
+
+======================================================================
+PARTE 8 — MANTER SERVIDOR SEMPRE ACORDADO
+======================================================================
+
+Render free tier dorme apos 15 min sem uso.
+
+OPCAO A — UptimeRobot (gratuito):
+  1. Criar conta em https://uptimerobot.com
+  2. Add New Monitor > HTTP(s)
+  3. URL: https://seu-app.onrender.com
+  4. Intervalo: 5 minutos
+
+OPCAO B — O .bat do bot ja faz warm-up automatico:
+  O teoGlobal.bat na pasta dist\ tenta acordar o servidor antes
+  de abrir o bot. Demora 30-60s na primeira abertura apos inatividade.
+
+
+======================================================================
+PARTE 9 — ATUALIZAR URL NO BOT (apos deploy)
+======================================================================
+
+1. Abrir: src/main/kotlin/LicenseManager.kt
+2. Linha 22, trocar URL:
+   private const val LICENSE_SERVER_URL = "https://seu-app.onrender.com"
+3. Recompilar:
+   .\gradlew.bat fatJar
+4. Copiar JAR para dist:
+   Copy-Item -Force "build\libs\teoGlobal-fat.jar" "dist\teoGlobal.jar"
+
+
+======================================================================
+PARTE 10 — CRIAR PASTA DIST (executavel portatil)
+======================================================================
+
+A pasta "dist" contem bot + Java + imagens. Copia para qualquer PC.
+
+ESTRUTURA:
+  dist/
+  ├── jre/                  Java Runtime embutido (42 MB)
+  ├── teoGlobal.jar         Programa compilado (6 MB)
+  ├── teoGlobal.bat         Clique duplo para abrir
+  ├── config.txt            Configuracoes
+  ├── waypoints/            Navegacao
+  ├── battleimages/         Batalha
+  ├── heal/                 Vida/mana
+  ├── rings/                Aneis
+  ├── dpimages1360/
+  ├── dpimages1920/
+  ├── hunts/
+  ├── huntsalternativas/
+  ├── interface/
+  └── suporte/
+
+COMANDO PARA CRIAR (PowerShell):
+  $proj = "C:\Users\SEU-USUARIO\Projetos\teoGlobal"
+  $dist = "$proj\dist"
+  New-Item -ItemType Directory -Force -Path $dist
+  Copy-Item -Force "$proj\build\libs\teoGlobal-fat.jar" "$dist\teoGlobal.jar"
+  $pastas = @("waypoints","battleimages","heal","rings","dpimages1360",
+              "dpimages1920","hunts","huntsalternativas","interface","suporte")
+  foreach ($p in $pastas) { Copy-Item -Recurse -Force "$proj\$p" "$dist\$p" }
+  Copy-Item -Force "$proj\config.txt" "$dist\config.txt"
+
+GERAR JRE PORTATIL:
+  $jdk = "C:\Users\SEU-USUARIO\.jdks\ms-17.0.19"
+  Remove-Item -Recurse -Force "$dist\jre" -ErrorAction SilentlyContinue
+  cmd /c "$jdk\bin\jlink.exe --module-path $jdk\jmods --add-modules java.base,java.desktop,java.logging,java.net.http,jdk.crypto.ec,jdk.unsupported --strip-debug --no-man-pages --no-header-files --compress=2 --output $dist\jre"
+  New-Item -ItemType Directory -Force "$dist\jre\lib\security"
+  Copy-Item "$jdk\lib\security\cacerts" "$dist\jre\lib\security\cacerts"
+
+
+======================================================================
+PARTE 11 — FLUXO DE VENDA (passo a passo)
+======================================================================
+
+COM DASHBOARD (recomendado):
+  1. Cliente paga via Pix
+  2. Abrir dashboard: http://localhost:3001/admin
+  3. Aba "Nova Licenca" > preencher nome > escolher duracao > Gerar
+  4. Clicar "Copiar chave"
+  5. Enviar chave para o cliente
+  6. Pronto — 30 segundos
+
+COM TERMINAL (alternativo):
+  1. Cliente paga via Pix
+  2. PowerShell:
+     node admin-cli.js generate 30 "Nome do Cliente"
+  3. Copiar chave do terminal
+  4. Enviar para o cliente
+
+RENOVACAO (dashboard):
+  1. Aba "Licencas" > buscar cliente
+  2. Botao "Estender" na linha da licenca
+  3. Digitar quantos dias > OK
+  4. Pronto, cliente nem precisa fazer nada
+
+RENOVACAO (terminal):
+  node admin-cli.js extend TEO-XXXX-... 30
+
+
+======================================================================
+PARTE 12 — TROCA DE PC DO CLIENTE (reset HWID)
+======================================================================
+
+Se o cliente formatou ou trocou de maquina, a licenca trava no HWID.
+Para liberar:
+
+  Dashboard: aba "Licencas" > botao "Reset HWID" na linha da licenca
+  Terminal:  node admin-cli.js reset-hwid TEO-XXXX-...
+
+Depois o cliente abre o bot no PC novo e a licenca ativa normalmente.
+
+
+======================================================================
+PARTE 13 — SOLUCAO DE PROBLEMAS
+======================================================================
+
+"DASHBOARD NAO ABRE (localhost:3001/admin)"
+  - Servidor esta rodando? A janela preta do .bat esta aberta?
+  - Porta correta? Se usou outra, ajuste a URL.
+  - Senha correta? A que voce definiu em DASHBOARD_PASSWORD.
+
+"ESQUECI A SENHA DO DASHBOARD"
+  - A senha esta definida na env var DASHBOARD_PASSWORD.
+  - Olhe no arquivo iniciar-dashboard.bat (linha do set DASHBOARD_PASSWORD).
+  - Se perdeu, defina uma nova e reinicie o servidor.
+
+"ERRO: LICENSE_SECRET nao definida"
+  - A env var LICENSE_SECRET e obrigatoria.
+  - No .bat local: verifique a linha set LICENSE_SECRET=...
+  - No Render: verifique Environment Variables no dashboard.
+
+"LICENSE_SECRET vs DASHBOARD_PASSWORD — qual a diferenca?"
+  LICENSE_SECRET    → Chave que protege as APIs de validacao.
+                       Mesma que sempre usou. Nao mude senao quebra
+                       os bots dos clientes.
+  DASHBOARD_PASSWORD → Senha so para acessar o painel web.
+                       Pode mudar a vontade, so afeta o dashboard.
+
+"NAO FOI POSSIVEL CONECTAR AO SERVIDOR" (no bot do cliente)
+  - Servidor Render dormiu (cold start). Aguardar 60s.
+  - Configure o UptimeRobot (Parte 8).
+
+"LICENCA NAO ENCONTRADA"
+  - Chave digitada errada. Verifique no dashboard ou com list.
+
+"LICENCA JA ATIVADA EM OUTRO COMPUTADOR"
+  - Cliente trocou de PC. Use "Reset HWID" no dashboard.
+
+"LICENCA EXPIRADA"
+  - Use "Estender" no dashboard ou: node admin-cli.js extend TEO-... 30
+
+"ERRO DE COMPILACAO NO INTELLIJ"
+  - JDK 17 instalado? File > Project Structure > SDK = JDK 17
+
+"ERRO: JAVA_HOME is not set"
+  - No PowerShell: set JAVA_HOME=C:\Users\SEU-USUARIO\.jdks\ms-17.0.19
+
+"ERRO SSL AO CONECTAR NO SERVIDOR"
+  - JRE sem certificados. Refazer PARTE 10 (copiar cacerts).
+
+"BANCO SQLITE SUMIU (licencas desapareceram)"
+  - Render free tier nao tem disco persistente. Faca upgrade (Parte 7.2).
+  - SEMPRE mantenha backup: baixe pelo botao "Backup" no dashboard
+    ou use: node admin-cli.js backup
+
+
+======================================================================
+PARTE 14 — RESUMO DOS ARQUIVOS
+======================================================================
+
+CODIGO FONTE:
+  src/main/kotlin/Main.kt              Ponto de entrada do bot
+  src/main/kotlin/LicenseManager.kt    Sistema de licencas (cliente)
+  src/main/kotlin/Config.kt            Salvar/carregar config
+  src/main/kotlin/Waypoint.kt          Navegacao e hunts
+  src/main/kotlin/Interface.kt         Interface grafica (Swing)
+
+SERVIDOR (license-server/):
+  server.js                            API + Dashboard (v2)
+  db.js                                Banco SQLite
+  auth.js                              Autenticacao
+  admin-cli.js                         Terminal
+  iniciar-dashboard.bat                Inicio rapido
+  public/login.html                    Tela de login
+  public/dashboard.html                Painel principal
+  public/css/style.css                 Tema escuro
+  public/js/dashboard.js               Logica do painel
+
+DISTRIBUICAO:
+  dist/teoGlobal.jar                   Programa compilado
+  dist/teoGlobal.bat                   Launcher
+  dist/jre/                            Java portatil
+  dist/config.txt                      Configuracoes
+
+SENHAS E CHAVES (guarde em lugar seguro):
+  LICENSE_SECRET      = rI0KPMDj6yk3OXSzLmYxs74fqbTaicB8NH9AWRvJtlgFGwVQ
+  DASHBOARD_PASSWORD  = 85344rp. (troque por uma senha forte)
+  URL Render          = https://teoglobal-license.onrender.com
+
+  Onde encontrar se perder:
+  - Render.com > teoglobal-license > Environment
+  - Arquivo: license-server/iniciar-dashboard.bat
+  - Arquivo: license-server/admin-cli.js (linha do SECRET)
+
+
+======================================================================
+PARTE 15 — MIGRACAO DO JSON ANTIGO PARA SQLite
+======================================================================
+
+A migracao e AUTOMATICA. Na primeira vez que rodar o server.js v2:
+
+  1. O sistema le o licenses.json antigo
+  2. Importa todas as licencas para o SQLite
+  3. Renomeia licenses.json → licenses.json.bak (backup)
+  4. Cria o banco teoglobal.db
+
+Se algo der errado, o backup .bak esta la. Nao delete.
+
+
+======================================================================
+FIM DO GUIA
+Criado em: julho/2026 — Atualizado para v2
+======================================================================

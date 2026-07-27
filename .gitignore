@@ -1,4 +1,7 @@
 node_modules/
+teoglobal.db
+teoglobal.db-wal
+teoglobal.db-shm
+*.bak
 licenses.json
-*.log
 .env

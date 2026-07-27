@@ -1,0 +1,193 @@
+/* TeoGlobal Dashboard — Tema escuro coeso */
+
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: #1f2b47;
+  --bg-input: #0f1629;
+  --border: #2a3a5c;
+  --text-primary: #e0e6f0;
+  --text-muted: #8899b4;
+  --brand: #0d9e6c;
+  --brand-hover: #0bb87a;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --success: #27ae60;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.bg-dark { background-color: var(--bg-primary) !important; }
+.bg-secondary { background-color: var(--bg-card) !important; }
+.bg-input { background-color: var(--bg-input) !important; }
+.border-secondary { border-color: var(--border) !important; }
+.text-brand { color: var(--brand) !important; }
+.text-muted { color: var(--text-muted) !important; }
+
+/* Navbar */
+.navbar {
+  background-color: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar-brand {
+  color: var(--brand) !important;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.nav-link {
+  color: var(--text-muted) !important;
+  transition: color 0.15s;
+}
+.nav-link:hover, .nav-link.active {
+  color: var(--text-primary) !important;
+}
+
+/* Cards */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.stat-card {
+  transition: transform 0.15s;
+  cursor: default;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tabela */
+.table {
+  color: var(--text-primary);
+  margin-bottom: 0;
+}
+.table th {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg-secondary);
+}
+.table td {
+  border-color: var(--border);
+  vertical-align: middle;
+}
+.table-hover tbody tr:hover {
+  background-color: rgba(255,255,255,0.03);
+}
+
+/* Botões */
+.btn-brand {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  font-weight: 500;
+}
+.btn-brand:hover {
+  background-color: var(--brand-hover);
+  border-color: var(--brand-hover);
+  color: #fff;
+}
+
+.btn-outline-brand {
+  color: var(--brand);
+  border-color: var(--brand);
+}
+.btn-outline-brand:hover {
+  background-color: var(--brand);
+  color: #fff;
+}
+
+/* Formulários */
+.form-control, .form-select {
+  background-color: var(--bg-input);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+.form-control:focus, .form-select:focus {
+  background-color: var(--bg-input);
+  border-color: var(--brand);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 0.2rem rgba(13, 158, 108, 0.15);
+}
+.form-control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Badges */
+.badge-active { background-color: var(--success); }
+.badge-revoked { background-color: var(--danger); }
+.badge-expired { background-color: var(--text-muted); }
+
+/* Modal */
+.modal-content {
+  background-color: var(--bg-card);
+  border-color: var(--border);
+}
+.modal-header {
+  border-color: var(--border);
+}
+.modal-footer {
+  border-color: var(--border);
+}
+
+/* Spinner */
+.spinner-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(26, 26, 46, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+}
+
+/* Key display */
+.key-display {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 1.3rem;
+  letter-spacing: 1px;
+  background: var(--bg-input);
+  border: 2px dashed var(--brand);
+  border-radius: 8px;
+  padding: 12px 20px;
+  text-align: center;
+  color: var(--brand);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .stat-number { font-size: 1.5rem; }
+  .table { font-size: 0.85rem; }
+}

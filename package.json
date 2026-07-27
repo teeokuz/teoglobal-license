@@ -1,13 +1,33 @@
 {
   "name": "teoglobal-license-server",
-  "version": "1.0.0",
-  "description": "License validation server for TeoGlobal",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "License server + admin dashboard for TeoGlobal",
+  "main": "launcher.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "cli": "node admin-cli.js",
+    "build-exe": "pkg launcher.js --targets node18-win-x64 --output dist/TeoGlobal-Licencas.exe"
+  },
+  "pkg": {
+    "assets": [
+      "server.js",
+      "db.js",
+      "auth.js",
+      "public/**/*",
+      "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+    ],
+    "outputPath": "dist"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
     "express": "^4.21.0",
-    "cors": "^2.8.5"
+    "express-session": "^1.18.1",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "nexe": "^5.0.0-beta.4",
+    "pkg": "^5.8.1"
   }
 }
