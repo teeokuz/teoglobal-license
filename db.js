@@ -173,11 +173,11 @@ async function activateLicense(licenseKey, hwid, secret) {
     if (license.hwid !== hashHwid(hwid, secret))
       return { error: 'Esta licença já está ativada em outro computador', code: 'HWID_MISMATCH' };
     await client.execute({ sql: 'UPDATE licenses SET last_heartbeat = ? WHERE license_key = ?', args: [new Date().toISOString(), licenseKey] });
-    return { success: true, message: 'Licença já ativada', ...getRemainingInfo(license.expires_at), expires_at: license.expires_at };
+    return { success: true, message: 'Licença já ativada', ...getRemainingInfo(license.expires_at), expires_at: license.expires_at, customer_name: license.customer_name };
   }
   const nowIso = new Date().toISOString();
   await client.execute({ sql: 'UPDATE licenses SET hwid = ?, hwid_bound_at = ?, last_heartbeat = ? WHERE license_key = ?', args: [hashHwid(hwid, secret), nowIso, nowIso, licenseKey] });
-  return { success: true, message: 'Licença ativada!', ...getRemainingInfo(license.expires_at), expires_at: license.expires_at };
+  return { success: true, message: 'Licença ativada!', ...getRemainingInfo(license.expires_at), expires_at: license.expires_at, customer_name: license.customer_name };
 }
 
 async function validateLicense(licenseKey, hwid, secret) {
