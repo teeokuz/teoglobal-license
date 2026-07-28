@@ -131,7 +131,7 @@ async function queryOne(sql, args = []) {
 function generateLicenseKey() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const part = () => Array.from({ length: 4 }, () => chars[crypto.randomInt(0, chars.length)]).join('');
-  return `TEO-${part()}-${part()}-${part()}-${part()}`;
+  return `${part()}-${part()}-${part()}-${part()}`;
 }
 
 async function findLicense(key) {
